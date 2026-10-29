@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PideYa — Acceso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16211B;
+    --teal:#1F4B47;
+    --teal-light:#2C645E;
+    --putty:#EFEAE0;
+    --paper:#FFFDF9;
+    --chili:#C6432B;
+    --chili-dark:#A6371F;
+    --mustard:#E8A93B;
+    --line:#DDD6C6;
+    --text:#2A2A26;
+    --muted:#6B6B62;
+    --error:#B3261E;
+    --error-bg:#FBEAE8;
+    --ok-bg:#E9F3EC;
+    --ok:#2E6B45;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',sans-serif;color:var(--text);background:var(--putty);}
+  .wrap{min-height:100vh;display:flex;}
+
+  /* Panel izquierdo */
+  .brand{
+    flex:0 0 42%;
+    background:radial-gradient(120% 140% at 20% 10%, var(--teal-light) 0%, var(--teal) 45%, var(--ink) 100%);
+    color:var(--paper);
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:56px 48px;
+    position:relative;
+    overflow:hidden;
+  }
+  .brand::after{
+    content:"";
+    position:absolute; right:-90px; bottom:-90px;
+    width:320px;height:320px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, var(--mustard) 0%, transparent 70%);
+    opacity:.35;
+  }
+  .brand-mark{
+    font-family:'Fraunces',serif;
+    font-size:34px;font-weight:700;letter-spacing:-0.02em;
+    z-index:1;
+  }
+  .brand-mark span{color:var(--mustard);}
+  .brand-quote{
+    font-family:'Fraunces',serif;
+    font-size:clamp(28px,3vw,40px);
+    line-height:1.25;
+    font-weight:400;
+    max-width:420px;
+    z-index:1;
+  }
+  .brand-foot{
+    font-size:14px; color:#C7D6D2; z-index:1;
+  }
+
+  /* Panel derecho */
+  .stage{
+    flex:1;
+    display:flex;align-items:center;justify-content:center;
+    padding:40px 24px;
+  }
+  .card{
+    width:100%;max-width:420px;
+  }
+  .tabs{
+    display:flex;gap:4px;background:var(--line);
+    border-radius:10px;padding:4px;margin-bottom:32px;
+  }
+  .tab{
+    flex:1;border:none;background:transparent;padding:10px 0;
+    font-family:'Inter',sans-serif;font-size:15px;font-weight:600;
+    color:var(--muted);border-radius:8px;cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .tab.active{background:var(--paper);color:var(--ink);}
+
+  h1{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-size:26px;margin:0 0 6px;color:var(--ink);
+  }
+  .sub{color:var(--muted);font-size:14px;margin:0 0 28px;}
+
+  label{
+    display:block;font-size:13px;font-weight:600;color:var(--ink);
+    margin:0 0 6px;
+  }
+  .field{margin-bottom:16px;}
+  input[type=text], input[type=email], input[type=password], input[type=number], select{
+    width:100%;padding:11px 13px;border:1.5px solid var(--line);
+    border-radius:8px;font-size:15px;font-family:'Inter',sans-serif;
+    background:var(--paper);color:var(--text);
+    transition:border-color .15s ease;
+  }
+  input:focus, select:focus{
+    outline:none;border-color:var(--teal);
+  }
+
+  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;}
+  .role-btn{
+    border:1.5px solid var(--line);background:var(--paper);
+    border-radius:8px;padding:10px 8px;font-size:13px;font-weight:600;
+    color:var(--muted);cursor:pointer;text-align:center;
+  }
+  .role-btn.active{border-color:var(--chili);color:var(--chili-dark);background:#FBF0EC;}
+
+  button.submit{
+    width:100%;padding:13px;border:none;border-radius:8px;
+    background:var(--chili);color:#fff;font-size:15px;font-weight:700;
+    font-family:'Inter',sans-serif;cursor:pointer;margin-top:6px;
+    transition:background .15s ease;
+  }
+  button.submit:hover{background:var(--chili-dark);}
+  button.submit:disabled{background:#CBB;cursor:default;}
+
+  .msg{
+    font-size:14px;padding:11px 13px;border-radius:8px;margin-bottom:16px;
+    display:none;
+  }
+  .msg.error{display:block;background:var(--error-bg);color:var(--error);}
+  .msg.ok{display:block;background:var(--ok-bg);color:var(--ok);}
+
+  .hidden{display:none !important;}
+
+  .session{
+    text-align:center;
+  }
+  .session .avatar{
+    width:64px;height:64px;border-radius:50%;
+    background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-size:26px;margin:0 auto 18px;
+  }
+  .session h2{font-family:'Fraunces',serif;margin:0 0 4px;font-size:22px;}
+  .session .role-pill{
+    display:inline-block;background:var(--putty);color:var(--ink);
+    font-size:12px;font-weight:700;letter-spacing:.02em;
+    padding:4px 12px;border-radius:100px;margin-bottom:22px;
+  }
+  .logout{
+    background:none;border:1.5px solid var(--line);color:var(--muted);
+    padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;
+    cursor:pointer;font-family:'Inter',sans-serif;
+  }
+
+  @media (max-width:820px){
+    .brand{display:none;}
+    .stage{padding:32px 20px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-mark">Pide<span>Ya</span></div>
+    <div class="brand-quote">Tu restaurante favorito, a la puerta de tu casa.</div>
+    <div class="brand-foot">Proyecto académico — conectado a la API local en <strong>localhost:8080</strong></div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+
+      <!-- Vista: sesión iniciada -->
+      <div id="view-session" class="session hidden">
+        <div class="avatar" id="session-initial">?</div>
+        <h2 id="session-name">—</h2>
+        <div class="role-pill" id="session-role">ROL</div>
+        <p class="sub" id="session-email">—</p>
+        <button class="logout" onclick="cerrarSesion()">Cerrar sesión</button>
+      </div>
+
+      <!-- Vista: login / registro -->
+      <div id="view-auth">
+        <div class="tabs">
+          <button class="tab active" id="tab-login" onclick="mostrarTab('login')">Iniciar sesión</button>
+          <button class="tab" id="tab-registro" onclick="mostrarTab('registro')">Crear cuenta</button>
+        </div>
+
+        <div id="msg-box" class="msg"></div>
+
+        <!-- LOGIN -->
+        <div id="form-login">
+          <h1>Bienvenido de nuevo</h1>
+          <p class="sub">Ingresa con tu correo y contraseña.</p>
+          <div class="field">
+            <label>Correo electrónico</label>
+            <input type="email" id="login-email" placeholder="tucorreo@ejemplo.com">
+          </div>
+          <div class="field">
+            <label>Contraseña</label>
+            <input type="password" id="login-password" placeholder="••••••••">
+          </div>
+          <button class="submit" id="btn-login" onclick="login()">Iniciar sesión</button>
+        </div>
+
+        <!-- REGISTRO -->
+        <div id="form-registro" class="hidden">
+          <h1>Crear una cuenta</h1>
+          <p class="sub">Elige tu tipo de cuenta para empezar.</p>
+
+          <div class="role-grid">
+            <button type="button" class="role-btn active" data-role="cliente" onclick="elegirRol('cliente')">Cliente</button>
+            <button type="button" class="role-btn" data-role="restaurante" onclick="elegirRol('restaurante')">Restaurante</button>
+            <button type="button" class="role-btn" data-role="repartidor" onclick="elegirRol('repartidor')">Repartidor</button>
+            <button type="button" class="role-btn" data-role="admin" onclick="elegirRol('admin')">Admin</button>
+          </div>
+
+          <div class="field">
+            <label id="label-nombre">Nombre completo</label>
+            <input type="text" id="reg-nombre" placeholder="Tu nombre">
+          </div>
+          <div class="field">
+            <label>Correo electrónico</label>
+            <input type="email" id="reg-email" placeholder="tucorreo@ejemplo.com">
+          </div>
+          <div class="field">
+            <label>Contraseña</label>
+            <input type="password" id="reg-password" placeholder="Mínimo 5 caracteres">
+          </div>
+
+          <!-- Campos extra por rol -->
+          <div class="field extra" data-for="cliente">
+            <label>Dirección favorita</label>
+            <input type="text" id="reg-direccionFavorita" placeholder="Zona 10">
+          </div>
+          <div class="field extra hidden" data-for="restaurante">
+            <label>Nombre comercial</label>
+            <input type="text" id="reg-nombreComercial" placeholder="Pizza Roma S.A.">
+          </div>
+          <div class="field extra hidden" data-for="restaurante">
+            <label>Dirección del local</label>
+            <input type="text" id="reg-direccion" placeholder="Zona 4">
+          </div>
+          <div class="field extra hidden" data-for="repartidor">
+            <label>Vehículo</label>
+            <input type="text" id="reg-vehiculo" placeholder="Moto">
+          </div>
+
+          <button class="submit" id="btn-registro" onclick="registrar()">Crear cuenta</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8080/api";
+let rolActual = "cliente";
+
+function mostrarTab(tab){
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-registro').classList.toggle('active', tab==='registro');
+  document.getElementById('form-login').classList.toggle('hidden', tab!=='login');
+  document.getElementById('form-registro').classList.toggle('hidden', tab!=='registro');
+  ocultarMensaje();
+}
+
+function elegirRol(rol){
+  rolActual = rol;
+  document.querySelectorAll('.role-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.role === rol);
+  });
+  document.querySelectorAll('.extra').forEach(el=>{
+    el.classList.toggle('hidden', el.dataset.for !== rol);
+  });
+}
+
+function mostrarMensaje(texto, tipo){
+  const box = document.getElementById('msg-box');
+  box.textContent = texto;
+  box.className = 'msg ' + tipo;
+}
+function ocultarMensaje(){
+  const box = document.getElementById('msg-box');
+  box.className = 'msg';
+  box.textContent = '';
+}
+
+async function login(){
+  ocultarMensaje();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if(!email || !password){
+    mostrarMensaje('Completa correo y contraseña.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Ingresando…';
+
+  try{
+    const res = await fetch(`${API}/clientes/login`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, password})
+    });
+
+    if(!res.ok){
+      throw new Error('Correo o contraseña incorrectos.');
+    }
+    const usuario = await res.json();
+    guardarSesion(usuario);
+  }catch(err){
+    mostrarMensaje(err.message || 'No se pudo conectar con el servidor.', 'error');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Iniciar sesión';
+  }
+}
+
+async function registrar(){
+  ocultarMensaje();
+  const nombre = document.getElementById('reg-nombre').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+
+  if(!nombre || !email || !password){
+    mostrarMensaje('Completa todos los campos requeridos.', 'error');
+    return;
+  }
+
+  let endpoint, payload = {nombre, email, password};
+
+  if(rolActual === 'cliente'){
+    endpoint = 'clientes/registro';
+    payload.direccionFavorita = document.getElementById('reg-direccionFavorita').value.trim();
+  } else if(rolActual === 'restaurante'){
+    endpoint = 'restaurantes/registro';
+    payload.nombreComercial = document.getElementById('reg-nombreComercial').value.trim();
+    payload.direccion = document.getElementById('reg-direccion').value.trim();
+  } else if(rolActual === 'repartidor'){
+    endpoint = 'repartidores/registro';
+    payload.vehiculo = document.getElementById('reg-vehiculo').value.trim();
+  } else {
+    endpoint = 'admins/registro';
+  }
+
+  const btn = document.getElementById('btn-registro');
+  btn.disabled = true; btn.textContent = 'Creando cuenta…';
+
+  try{
+    const res = await fetch(`${API}/${endpoint}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    if(!res.ok){
+      throw new Error('No se pudo crear la cuenta. ¿Ese correo ya está registrado?');
+    }
+    const usuario = await res.json();
+    usuario._rol = rolActual;
+    guardarSesion(usuario);
+  }catch(err){
+    mostrarMensaje(err.message || 'No se pudo conectar con el servidor.', 'error');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Crear cuenta';
+  }
+}
+
+function guardarSesion(usuario){
+  localStorage.setItem('pideya_sesion', JSON.stringify(usuario));
+  mostrarSesion(usuario);
+}
+
+function mostrarSesion(usuario){
+  document.getElementById('view-auth').classList.add('hidden');
+  document.getElementById('view-session').classList.remove('hidden');
+  document.getElementById('session-initial').textContent = (usuario.nombre || '?').charAt(0).toUpperCase();
+  document.getElementById('session-name').textContent = usuario.nombre || usuario.nombreComercial || 'Usuario';
+  document.getElementById('session-email').textContent = usuario.email || '';
+
+  let rol = usuario._rol;
+  if(!rol){
+    if(usuario.nombreComercial !== undefined) rol = 'restaurante';
+    else if(usuario.vehiculo !== undefined) rol = 'repartidor';
+    else if(usuario.direccionFavorita !== undefined) rol = 'cliente';
+    else rol = 'admin';
+  }
+  document.getElementById('session-role').textContent = rol.toUpperCase();
+}
+
+function cerrarSesion(){
+  localStorage.removeItem('pideya_sesion');
+  document.getElementById('view-session').classList.add('hidden');
+  document.getElementById('view-auth').classList.remove('hidden');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+// Si ya había una sesión guardada, la muestra directo
+(function init(){
+  const guardada = localStorage.getItem('pideya_sesion');
+  if(guardada){
+    mostrarSesion(JSON.parse(guardada));
+  }
+})();
+</script>
+
+</body>
+</html>
