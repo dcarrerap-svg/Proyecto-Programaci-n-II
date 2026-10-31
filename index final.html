@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pide Ya — comida a domicilio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- LEAFLET MAPAS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  :root{
+    --ink:#0B2B22; --paper:#FFF8EC; --mango:#FF7A3D; --guava:#FF2E63; --banana:#FFC93C; --lime:#8CD867;
+    --page:#FFFFFF; --surface:#F7F6F1; --text:#0B2B22; --text-soft:#4E6459; --nav-bg:rgba(255,255,255,0.86);
+    --border:rgba(11,43,34,0.14); --glow-1:#EAF6EF; --glow-2:#FFFFFF; --glow-3:#F3FBF6;
+    box-sizing:border-box; padding-top: env(safe-area-inset-top,0px); padding-bottom: env(safe-area-inset-bottom,0px);
+  }
+  [data-theme="dark"]{
+    --page:#0A0A0A; --surface:#151515; --text:#FFF8EC; --text-soft:#B7B7AE; --nav-bg:rgba(10,10,10,0.88);
+    --border:rgba(255,248,236,0.14); --glow-1:#1C1C1C; --glow-2:#0A0A0A; --glow-3:#000000;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth; scroll-padding-top: env(safe-area-inset-top,0px);}
+  html,body{margin:0;padding:0;}
+  body{ font-family:'Manrope', sans-serif; background:var(--page); color:var(--text); overflow-x:hidden; transition: background-color .25s ease, color .25s ease; }
+  h1,h2,h3,.display{ font-family:'Baloo 2', sans-serif; font-weight:700; line-height:1.05; margin:0; }
+  img{max-width:100%;display:block;} a{color:inherit;} .wrap{max-width:1180px;margin:0 auto;padding:0 28px;} section{position:relative;}
+
+  .hidden-logged-in { display: none !important; }
+  .show-logged-in { display: block !important; }
+
+  /* NAV */
+  header{ position:sticky; top:0; z-index:50; background:var(--nav-bg); backdrop-filter:blur(8px); padding-top: env(safe-area-inset-top,0px); transition: background-color .25s ease; }
+  .nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 28px; max-width:1180px; margin:0 auto; }
+  .brand{ display:flex; align-items:center; gap:11px; font-family:'Baloo 2'; font-weight:800; font-size:1.4rem; color:var(--text); letter-spacing:0.3px; }
+  .brand .bolt{ width:34px;height:34px; display:inline-block; flex-shrink:0; filter: drop-shadow(0 3px 0 rgba(0,0,0,0.28)); }
+  .brand .word{ display:inline-flex; gap:6px; transform:skewX(-8deg); color:#00A651; }
+  .brand .word b{ color:#0B7A3E; }
+  .nav-links{display:flex; gap:32px; font-weight:600; color:var(--text); font-size:0.95rem;}
+  .nav-links a{text-decoration:none; opacity:0.85; transition:opacity .2s;} .nav-links a:hover{opacity:1;}
+  .nav-right{ display:flex; align-items:center; gap:14px; }
+  .theme-toggle{ width:40px; height:40px; border-radius:50%; border:2px solid var(--border); background:var(--page); color:var(--text); display:flex; align-items:center; justify-content:center; font-size:1.05rem; cursor:pointer; flex-shrink:0; transition: background-color .25s ease, border-color .25s ease, transform .15s ease; }
+  .theme-toggle:hover{ transform:scale(1.08) rotate(-8deg); }
+  .nav-cta{ background:var(--banana); color:var(--ink); border:none; padding:11px 22px; border-radius:100px; font-weight:700; font-size:0.9rem; font-family:'Manrope'; cursor:pointer; }
+  @media (max-width:760px){ .nav-links{display:none;} }
+
+  /* HERO */
+  .hero{ background: radial-gradient(circle at 15% 20%, var(--glow-1) 0%, var(--glow-2) 55%, var(--glow-3) 100%); color:var(--text); padding:64px 0 40px; overflow:hidden; transition: background .25s ease, color .25s ease; }
+  .hero-grid{ display:grid; grid-template-columns:1.1fr 1fr; gap:40px; align-items:center; }
+  @media (max-width:900px){ .hero-grid{grid-template-columns:1fr; text-align:center;} }
+  .eyebrow-row{display:flex; align-items:center; gap:10px; margin-bottom:18px; justify-content:flex-start;} @media (max-width:900px){ .eyebrow-row{justify-content:center;} }
+  .eyebrow-row .dot{width:8px;height:8px;border-radius:50%;background:var(--lime); box-shadow:0 0 0 4px rgba(140,216,103,0.25);}
+  .eyebrow-row span{font-weight:700; font-size:0.85rem; color:var(--text-soft);}
+  .hero h1{ font-size:clamp(2.5rem, 5.2vw, 4.1rem); color:var(--text); }
+  .hero h1 em{ font-style:normal; color:var(--banana); }
+  .hero p.lead{ margin-top:20px; font-size:1.15rem; color:var(--text-soft); max-width:480px; font-weight:500; } @media (max-width:900px){ .hero p.lead{margin-inline:auto;} }
+  .hero-actions{display:flex; gap:14px; margin-top:32px; flex-wrap:wrap;} @media (max-width:900px){ .hero-actions{justify-content:center;} }
+  .btn-primary{ background:var(--guava); color:#fff; border:none; padding:15px 28px; border-radius:100px; font-weight:700; font-size:1rem; font-family:'Manrope'; cursor:pointer; box-shadow:0 10px 24px rgba(255,46,99,0.35); transition:transform .2s ease; }
+  .btn-primary:hover{transform:translateY(-2px);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-ghost{ background:transparent; color:var(--text); border:2px solid var(--border); padding:13px 26px; border-radius:100px; font-weight:700; font-size:1rem; font-family:'Manrope'; cursor:pointer; transition:border-color .2s; }
+  .btn-ghost:hover{border-color:var(--text);}
+
+  /* CUBO 3D */
+  .stage{ perspective:1200px; display:flex; align-items:center; justify-content:center; height:420px; position:relative; }
+  .orbit{ position:absolute; width:340px; height:340px; border-radius:50%; border:2px dashed var(--border); }
+  .cube-wrap{ transform-style:preserve-3d; width:200px; height:200px; position:relative; animation: floaty 4.5s ease-in-out infinite, spin 16s linear infinite; transform: rotateX(-18deg) rotateY(35deg); }
+  @keyframes spin{ 0%{ transform: rotateX(-18deg) rotateY(35deg); } 100%{ transform: rotateX(-18deg) rotateY(395deg); } }
+  @keyframes floaty{ 0%,100%{ margin-top:0px; } 50%{ margin-top:-18px; } }
+  .face{ position:absolute; width:200px; height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; font-family:'Baloo 2'; font-weight:800; font-size:1.05rem; color:var(--ink); border:3px solid rgba(11,43,34,0.18); border-radius:16px; text-align:center; padding:10px; }
+  .face .rico{ font-size:2.6rem; line-height:1; filter:drop-shadow(0 3px 0 rgba(0,0,0,0.15)); }
+  .face .nom{ font-size:0.95rem; letter-spacing:0.2px; }
+  .face.front{ background:#FFD9D0; transform:translateZ(100px);} .face.back{ background:#FFE1AE; transform:rotateY(180deg) translateZ(100px);} .face.right{ background:#FFF0BE; transform:rotateY(90deg) translateZ(100px);} .face.left{ background:#D8F0C8; transform:rotateY(-90deg) translateZ(100px);} .face.top{ background:#FFD3E0; transform:rotateX(90deg) translateZ(100px);} .face.bottom{ background:#CDEDE2; transform:rotateX(-90deg) translateZ(100px);}
+  .spark{ position:absolute; border-radius:50%; background:var(--guava); opacity:0.85; filter:blur(0.5px); }
+  .spark.s1{ width:14px;height:14px; top:18%; left:12%; animation: pulse 2.6s ease-in-out infinite; } .spark.s2{ width:10px;height:10px; bottom:14%; right:10%; background:var(--lime); animation: pulse 2.6s ease-in-out infinite .8s; } .spark.s3{ width:8px;height:8px; top:8%; right:22%; background:var(--banana); animation: pulse 2.6s ease-in-out infinite 1.4s; }
+  @keyframes pulse{ 0%,100%{transform:scale(1); opacity:0.5;} 50%{transform:scale(1.6); opacity:1;} }
+  @media (prefers-reduced-motion: reduce){ .cube-wrap{animation:none; transform: rotateX(-18deg) rotateY(35deg);} .spark{animation:none;} }
+
+  /* MARQUEE */
+  .marquee-band{ background:var(--banana); overflow:hidden; padding:14px 0; border-top:3px solid var(--ink); border-bottom:3px solid var(--ink); }
+  .marquee-track{ display:flex; gap:42px; white-space:nowrap; animation: scroll-left 22s linear infinite; font-family:'Baloo 2'; font-weight:700; font-size:1.05rem; color:var(--ink); }
+  .marquee-track span{display:flex; align-items:center; gap:10px;} @keyframes scroll-left{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+
+  /* HOW IT WORKS */
+  .how{ padding:96px 0 80px; background:var(--page); transition: background-color .25s ease; }
+  .section-head{ max-width:560px; margin-bottom:56px; }
+  .section-head p.kicker{ color:var(--guava); font-weight:800; font-size:0.95rem; margin-bottom:10px; }
+  .section-head h2{ font-size:clamp(2rem,3.6vw,2.8rem); color:var(--text); }
+  .steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:28px; position:relative; } @media (max-width:860px){ .steps{grid-template-columns:1fr;} }
+  .step-card{ background:var(--surface); border-radius:26px; padding:32px 26px; position:relative; border:3px solid var(--ink); box-shadow:8px 8px 0 var(--ink); }
+  .step-num{ font-family:'Baloo 2'; font-weight:800; font-size:3.4rem; color:transparent; -webkit-text-stroke:2px var(--ink); line-height:1; margin-bottom:10px; }
+  .step-card h3{ font-size:1.35rem; margin-bottom:10px; color:var(--ink); }
+  .step-card p{ margin:0; font-size:0.98rem; color:#3B5449; line-height:1.5; }
+  .step-card:nth-child(1){ background:#FFD9E4; } .step-card:nth-child(2){ background:#FFF0C2; } .step-card:nth-child(3){ background:#DCF3CB; }
+
+  /* API SECTION */
+  .api-section{padding:82px 0;background:var(--page);}
+  .api-status{display:flex;align-items:center;gap:10px;padding:13px 16px;border:1px solid var(--border);border-radius:14px;background:var(--surface);font-size:.9rem;margin:18px 0 28px;}
+  .status-dot{width:10px;height:10px;border-radius:50%;background:#d97706;flex-shrink:0;} .status-dot.ok{background:#16a34a}.status-dot.bad{background:#dc2626}
+  .api-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:22px 0;}
+  .api-toolbar select,.form-field input,.form-field textarea,.form-field select{font:inherit;color:var(--text);background:var(--page);border:1px solid var(--border);border-radius:12px;padding:12px 14px;width:100%;}
+  .api-toolbar select{max-width:420px;}
+  .api-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;}
+  .api-card{background:var(--page);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 8px 24px rgba(11,43,34,.06);display:flex;flex-direction:column;gap:10px;}
+  .api-card .food-emoji{font-size:2.4rem}.api-card h3{font-size:1.25rem;color:var(--text)}.api-card p{color:var(--text-soft);margin:0;line-height:1.5;font-size:.92rem}.api-card .price{font-weight:800;color:var(--guava);font-size:1.15rem;margin-top:auto;padding-top:8px;}
+  .api-card button,.small-action{border:0;border-radius:100px;background:var(--ink);color:#fff;padding:11px 16px;font:700 .9rem Manrope,sans-serif;cursor:pointer;}
+  [data-theme="dark"] .api-card button,[data-theme="dark"] .small-action{background:var(--banana);color:var(--ink);}
+  .api-card button:disabled{opacity:.45;cursor:not-allowed;}
+  .api-empty{grid-column:1/-1;background:var(--surface);border:1px dashed var(--border);padding:28px;border-radius:18px;color:var(--text-soft);text-align:center;}
+  .order-layout{display:grid;grid-template-columns:1.25fr .75fr;gap:24px;align-items:start;margin-top:30px;}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:24px;}
+  .panel h3{font-size:1.4rem;margin-bottom:14px;color:var(--text)}
+  .cart-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .cart-row:last-child{border-bottom:0}.cart-row small{display:block;color:var(--text-soft);margin-top:3px;}
+  .qty-controls{display:flex;align-items:center;gap:8px;white-space:nowrap}.qty-controls button{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--page);color:var(--text);cursor:pointer;}
+  .total-row{display:flex;justify-content:space-between;font-weight:800;font-size:1.1rem;padding-top:16px;margin-top:10px;border-top:2px solid var(--border);}
+  .auth-section{padding:76px 0;background:var(--surface);}
+  .auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+  .form-field{display:grid;gap:7px;margin:12px 0}.form-field label{font-size:.88rem;font-weight:700;color:var(--text-soft)}
+  .form-field input:focus,.form-field textarea:focus,.form-field select:focus{outline:2px solid var(--lime);border-color:transparent;}
+  .form-message{font-size:.9rem;min-height:1.25em;color:var(--text-soft);margin-top:10px;overflow-wrap:anywhere;}
+  .history-list{display:grid;gap:12px;margin-top:16px}.history-item{border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--page);}
+  @media(max-width:900px){.api-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.order-layout,.auth-grid{grid-template-columns:1fr}}
+  @media(max-width:560px){.api-grid{grid-template-columns:1fr}.panel{padding:18px}.api-section,.auth-section{padding:58px 0}}
+
+  /* DASHBOARDS */
+  .dashboard { display: none; }
+  .dashboard.active { display: block; }
+  .dash-header { background: var(--surface); border-radius: 22px; padding: 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; border: 2px solid var(--border); }
+  .dash-header h2 { font-size: 1.8rem; margin: 0; color: var(--text); }
+  .dash-badge { background: var(--banana); color: var(--ink); padding: 6px 14px; border-radius: 100px; font-weight: 800; font-size: 0.85rem; }
+  .dash-badge.rol-CLIENTE { background: var(--lime); } .dash-badge.rol-REPARTIDOR { background: var(--mango); color:#fff; } .dash-badge.rol-RESTAURANTE { background: var(--guava); color:#fff; }
+  .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+  .dash-card { background: var(--page); border: 1px solid var(--border); border-radius: 18px; padding: 20px; box-shadow: 0 8px 24px rgba(11,43,34,.06); }
+  .dash-card h3 { font-family: 'Baloo 2'; font-size: 1.15rem; margin-bottom: 10px; color: var(--text); }
+  .dash-card .metric { font-family: 'Baloo 2'; font-size: 2rem; font-weight: 800; color: var(--guava); }
+  .dash-card .metric-label { font-size: 0.85rem; color: var(--text-soft); font-weight: 600; }
+
+  /* CALIFICADO */
+  .rated-badge { margin-top: 8px; padding: 10px 14px; border-radius: 12px; background: rgba(140,216,103,0.18); border: 1px solid var(--lime); font-size: .88rem; color: var(--text); }
+  .rated-badge .rated-stars { color: #E5A800; font-size: 1.1rem; letter-spacing: 2px; }
+  .rated-badge .rated-title { font-weight: 800; display: block; margin-bottom: 2px; }
+  .rated-badge .rated-comment { display: block; color: var(--text-soft); margin-top: 4px; font-style: italic; overflow-wrap: anywhere; }
+
+  /* MAPAS */
+  .map-container { height: 350px; border-radius: 16px; z-index: 1; border: 1px solid var(--border); width: 100%; }
+
+  /* MODALES */
+  .payment-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; }
+  .payment-content { background: var(--page); padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+  .star { cursor: pointer; transition: color 0.2s; }
+
+  /* FOOTER */
+  footer{ background:var(--surface); color:var(--text); padding:56px 0 28px; transition: background-color .25s ease, color .25s ease; }
+  .footer-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:32px; margin-bottom:40px; } @media (max-width:760px){ .footer-grid{grid-template-columns:1fr 1fr;} }
+  footer h4{ font-family:'Baloo 2'; font-size:1rem; margin-bottom:14px; color:var(--banana); }
+  footer ul{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
+  footer a{ text-decoration:none; color:var(--text-soft); font-size:0.92rem; } footer a:hover{ color:var(--text); }
+  .footer-bottom{ border-top:1px solid var(--border); padding-top:22px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:0.82rem; color:var(--text-soft); }
+</style>
+</head>
+<body>
+
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <defs>
+    <linearGradient id="pideGrad" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7ED957"/> <stop offset="1" stop-color="#00A651"/>
+    </linearGradient>
+    <symbol id="pide-logo" viewBox="0 0 44 44">
+      <rect x="2" y="2" width="40" height="40" rx="12" fill="url(#pideGrad)" stroke="#0B3B22" stroke-width="2.2"/>
+      <path d="M3 14l7 2.2M2 19.5l8 1.4" stroke="#EFFFF2" stroke-width="1.8" stroke-linecap="round" opacity="0.55"/>
+      <circle cx="12" cy="31" r="5" fill="none" stroke="#0B3B22" stroke-width="2.6"/>
+      <circle cx="32" cy="31" r="5" fill="none" stroke="#0B3B22" stroke-width="2.6"/>
+      <path d="M12 31h7l4-9h6M19 31l4-9" stroke="#0B3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M23 22h6l4 9h-1" stroke="#0B3B22" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M14 22c2-4 5-6 9-6h3" stroke="#0B3B22" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+      <circle cx="26" cy="16" r="2.4" fill="#0B3B22"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header>
+  <div class="nav wrap">
+    <div class="brand">
+      <svg class="bolt" viewBox="0 0 44 44"><use href="#pide-logo"/></svg>
+      <span class="word">PIDE <b>YA</b></span>
+    </div>
+    <nav class="nav-links">
+      <a href="#como-funciona" id="navHowBtn">Cómo funciona</a>
+    </nav>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a modo oscuro">🌙</button>
+      <button class="nav-cta hidden-logged-in" id="navOrderBtn">Pedir ahora</button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero hidden-logged-in" id="homeHero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow-row"><span class="dot"></span><span>Entregas en Amatitlán y alrededores</span></div>
+      <h1>Se te antojó algo rico?<br><em>Pedí ya.</em> Nosotros corremos.</h1>
+      <p class="lead">Pedí de tus restaurantes favoritos y seguí el paquete en tiempo real, desde la cocina hasta tu puerta.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" id="heroRestaurantsBtn">Ver restaurantes</button>
+        <button class="btn-ghost" id="heroHowBtn">Cómo funciona</button>
+      </div>
+      <div class="stat-row" style="display:flex; gap:36px; margin-top:44px; flex-wrap:wrap;">
+        <div><b style="display:block; font-family:'Baloo 2'; font-size:1.6rem; color:var(--banana);">Local</b><span style="font-size:0.82rem; color:var(--text-soft); font-weight:600;">apoya a restaurantes</span></div>
+        <div><b style="display:block; font-family:'Baloo 2'; font-size:1.6rem; color:var(--banana);">Rápido</b><span style="font-size:0.82rem; color:var(--text-soft); font-weight:600;">seguimiento en vivo</span></div>
+        <div><b style="display:block; font-family:'Baloo 2'; font-size:1.6rem; color:var(--banana);">4.9★</b><span style="font-size:0.82rem; color:var(--text-soft); font-weight:600;">calidad garantizada</span></div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="orbit"></div>
+      <div class="cube-wrap">
+        <div class="face front"><span class="rico">🍔</span><span class="nom">Hamburguesas</span></div>
+        <div class="face back"><span class="rico">🍕</span><span class="nom">Pizzas</span></div>
+        <div class="face right"><span class="rico">🌮</span><span class="nom">Tacos</span></div>
+        <div class="face left"><span class="rico">🍣</span><span class="nom">Sushi</span></div>
+        <div class="face top"><span class="rico">🥗</span><span class="nom">Saludable</span></div>
+        <div class="face bottom"><span class="rico">🍰</span><span class="nom">Postres</span></div>
+      </div>
+      <div class="spark s1"></div><div class="spark s2"></div><div class="spark s3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-band hidden-logged-in">
+  <div class="marquee-track" id="marquee">
+    <span>🍕 Pizza</span><span>🍣 Sushi</span><span>🍔 Hamburguesas</span><span>🥗 Saludable</span><span>🍦 Postres</span><span>☕ Café</span><span>🌮 Tacos</span><span>🍜 Ramen</span>
+  </div>
+</div>
+
+<!-- CÓMO FUNCIONA -->
+<section class="how hidden-logged-in" id="como-funciona">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="kicker" id="howKicker">Tres pasos</p>
+      <h2 id="howTitle">De la cocina a tu mesa, sin vueltas.</h2>
+    </div>
+    <div class="steps" id="howStepsContainer"></div>
+  </div>
+</section>
+
+<!-- TIENDA (Solo Cliente) -->
+<div id="clientOnlyZone" class="hidden-logged-in">
+  <section class="api-section" id="restaurantes">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="kicker">Conectado a tu backend</p>
+        <h2>Explorá restaurantes y su menú</h2>
+      </div>
+
+      <!-- BOTONES DE UBICACIÓN -->
+      <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button id="btnGeolocalizacion" class="btn-primary" type="button" style="padding: 10px 20px; font-size: 0.9rem; box-shadow: none;">
+            📍 Usar mi ubicación actual
+        </button>
+        <button id="btnUbicacionTest" class="btn-ghost" type="button" style="padding: 10px 20px; font-size: 0.9rem; border-color: var(--lime); color: var(--lime);">
+            🧪 Simular ubicación en Amatitlán (Para pruebas)
+        </button>
+        <span id="geoStatus" style="font-size: 0.85rem; color: var(--text-soft);"></span>
+      </div>
+
+      <div class="api-status" role="status"><span id="apiStatusDot" class="status-dot"></span><span id="apiStatusText">Comprobando conexión…</span><button id="retryApi" class="small-action" style="margin-left:auto">Reintentar</button></div>
+      <div class="api-toolbar">
+        <div><strong>Restaurantes disponibles</strong></div>
+        <select id="restaurantSelect" aria-label="Seleccionar restaurante"><option value="">Seleccioná un restaurante</option></select>
+      </div>
+      <div class="api-grid" id="restaurantGrid"><div class="api-empty">Cargando restaurantes…</div></div>
+
+      <div class="api-toolbar" style="margin-top:42px">
+        <div><strong>Menú del restaurante</strong></div>
+        <span id="menuRestaurantName" style="color:var(--text-soft);font-size:.9rem"></span>
+      </div>
+      <div class="api-grid" id="productGrid"><div class="api-empty">Primero seleccioná un restaurante.</div></div>
+
+      <div class="order-layout">
+        <div class="panel"><h3>Tu carrito</h3><div id="cartItems"><div class="api-empty">Tu carrito está vacío.</div></div><div class="total-row"><span>Total estimado</span><span id="cartTotal">Q 0.00</span></div><div class="form-field"><label for="deliveryAddress">Dirección de entrega (referencia)</label><input id="deliveryAddress" placeholder="Ej. Zona 1, Ciudad de Guatemala"></div><button id="placeOrderBtn" class="btn-primary" style="width:100%" disabled>Confirmar pedido</button><p id="orderMessage" class="form-message" role="status"></p></div>
+        <div class="panel"><h3>Mis pedidos</h3><button id="loadOrdersBtn" class="btn-ghost" style="margin-top:14px;width:100%">Actualizar historial</button><div id="orderHistory" class="history-list"><div class="api-empty">No se han consultado pedidos.</div></div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- LOGIN / REGISTRO -->
+<section class="auth-section" id="cuenta">
+  <div class="wrap">
+    <div class="section-head"><p class="kicker">Tu cuenta</p><h2>Registrate o iniciá sesión</h2></div>
+    <div class="auth-grid">
+      <div class="panel">
+        <h3>Crear cuenta</h3>
+        <form id="registerForm">
+          <div class="form-field"><label for="regName">Nombre completo (o nombre del local)</label><input id="regName" required maxlength="100"></div>
+          <div class="form-field"><label for="regEmail">Correo electrónico</label><input id="regEmail" type="email" required></div>
+          <div class="form-field"><label for="regPassword">Contraseña</label><input id="regPassword" type="password" required minlength="6"></div>
+          <div class="form-field"><label for="regAddress">Dirección (favorita o del local)</label><input id="regAddress" required></div>
+          <div class="form-field">
+            <label for="regRole">Tipo de cuenta</label>
+            <select id="regRole" required>
+              <option value="CLIENTE">Cliente (pedir comida)</option>
+              <option value="RESTAURANTE">Restaurante (vender)</option>
+              <option value="REPARTIDOR">Repartidor (entregar)</option>
+            </select>
+          </div>
+          <button class="btn-primary" type="submit">Registrarme</button><p id="registerMessage" class="form-message" role="status"></p>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Iniciar sesión</h3>
+        <form id="loginForm">
+          <div class="form-field"><label for="loginEmail">Correo electrónico</label><input id="loginEmail" type="email" required></div>
+          <div class="form-field"><label for="loginPassword">Contraseña</label><input id="loginPassword" type="password" required></div>
+          <button class="btn-primary" type="submit">Ingresar</button><p id="loginMessage" class="form-message" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARDS -->
+<section id="dashboardZone" class="api-section dashboard" style="background:var(--surface)">
+  <div class="wrap">
+    <div class="dash-header">
+      <div>
+        <h2 id="dashTitle">Panel</h2>
+        <p id="dashSubtitle" style="margin:6px 0 0;color:var(--text-soft);font-size:.95rem"></p>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span id="dashRoleBadge" class="dash-badge">—</span>
+        <button id="dashLogout" class="btn-ghost" type="button">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <!-- CLIENTE -->
+    <div class="dashboard" data-role-panel="CLIENTE">
+      <div class="dash-grid">
+        <div class="dash-card"><h3>Pedidos activos</h3><div class="metric" id="cliActiveOrders">0</div></div>
+        <div class="dash-card"><h3>Historial</h3><div class="metric" id="cliTotalOrders">0</div></div>
+        <div class="dash-card"><h3>Dirección favorita</h3><p id="cliAddress" style="color:var(--text-soft);margin:0">—</p></div>
+      </div>
+
+      <!-- MAPA CLIENTE -->
+      <div class="panel" style="margin-top:24px;display:none;" id="trackingPanel">
+        <h3>Seguimiento de tu pedido</h3>
+        <p style="color:var(--text-soft);font-size:.9rem;margin-bottom:10px">Este es el camino que recorrerá tu repartidor.</p>
+        <div id="mapCliente" class="map-container"></div>
+      </div>
+
+      <div class="panel" style="margin-top:24px"><h3>Mis pedidos recientes</h3><div id="cliOrderList" class="history-list"><div class="api-empty">Sin pedidos aún.</div></div></div>
+    </div>
+
+    <!-- REPARTIDOR -->
+    <div class="dashboard" data-role-panel="REPARTIDOR">
+      <div class="dash-grid">
+        <div class="dash-card"><h3>Disponibilidad</h3><button id="repToggleOnline" class="btn-primary" type="button" style="width:100%">Ponerme en línea</button><p id="repStatus" class="form-message"></p></div>
+        <div class="dash-card"><h3>Entregas hoy</h3><div class="metric" id="repDeliveriesToday">0</div></div>
+        <div class="dash-card"><h3>Ganancias estimadas</h3><div class="metric" id="repEarnings">Q 0.00</div></div>
+      </div>
+
+      <!-- MAPA REPARTIDOR -->
+      <div class="panel" style="margin-top:24px;display:none;" id="trackingPanelRep">
+        <h3>Ruta de entrega</h3>
+        <div id="mapRepartidor" class="map-container"></div>
+      </div>
+
+      <div class="panel" style="margin-top:24px"><h3>Pedidos disponibles</h3><div id="repOrderPool" class="history-list"><div class="api-empty">Sin pedidos disponibles.</div></div></div>
+    </div>
+
+    <!-- RESTAURANTE -->
+    <div class="dashboard" data-role-panel="RESTAURANTE">
+      <div class="dash-grid">
+        <div class="dash-card"><h3>Pedidos pendientes</h3><div class="metric" id="resPendingOrders">0</div></div>
+        <div class="dash-card"><h3>Productos activos</h3><div class="metric" id="resProductCount">0</div></div>
+        <div class="dash-card"><h3>Ventas del día</h3><div class="metric" id="resSalesToday">Q 0.00</div></div>
+      </div>
+
+      <div class="order-layout" style="margin-top:24px">
+        <div class="panel">
+          <h3>Agregar nuevo platillo</h3>
+          <form id="addProductForm">
+            <div class="form-field"><label>Nombre</label><input id="prodName" required></div>
+            <div class="form-field"><label>Descripción</label><input id="prodDesc" required></div>
+            <div class="form-field"><label>Precio (Q)</label><input id="prodPrice" type="number" step="0.01" min="1" required></div>
+            <button type="submit" class="btn-primary" style="width:100%">Guardar Platillo</button>
+            <p id="addProdMsg" class="form-message"></p>
+          </form>
+        </div>
+        <div class="panel">
+          <h3>Mi Menú Actual</h3>
+          <div id="resMenuList" class="history-list"><div class="api-empty">Cargando menú...</div></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:24px">
+        <h3>Pedidos entrantes</h3>
+        <div id="resOrderList" class="history-list"><div class="api-empty">Sin pedidos por ahora.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="mainFooter">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="brand" style="margin-bottom:14px;"><svg class="bolt" viewBox="0 0 44 44"><use href="#pide-logo"/></svg><span class="word">PIDE <b>YA</b></span></div>
+        <p style="color:var(--text-soft);font-size:0.9rem;max-width:220px;">Comida a domicilio, rápida y con buen sabor.</p>
+      </div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 Pide Ya.</span></div>
+  </div>
+</footer>
+
+<!-- MODAL DE PAGO -->
+<div id="paymentModal" class="payment-modal">
+  <div class="payment-content">
+    <h2 style="margin-top:0; color:var(--text);">Finalizar Pedido</h2>
+
+    <div id="paymentStep1">
+        <p style="color:var(--text-soft);">Seleccioná tu método de pago:</p>
+        <label style="display:block; padding:15px; border:2px solid var(--border); border-radius:12px; margin-bottom:10px; cursor:pointer; color:var(--text);">
+            <input type="radio" name="metodoPago" value="EFECTIVO" checked> 💵 Efectivo contra entrega
+        </label>
+        <label style="display:block; padding:15px; border:2px solid var(--border); border-radius:12px; margin-bottom:20px; cursor:pointer; color:var(--text);">
+            <input type="radio" name="metodoPago" value="TARJETA"> 💳 Tarjeta de Crédito / Débito
+        </label>
+        <button class="btn-primary" style="width:100%" onclick="irAPasoPago()">Continuar</button>
+    </div>
+
+    <div id="paymentStep2" style="display:none;">
+        <p style="color:var(--text-soft);">Ingresá los datos de tu tarjeta (Simulación):</p>
+        <div class="form-field"><label>Número de Tarjeta</label><input id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="16"></div>
+        <div style="display:flex; gap:10px;">
+            <div class="form-field" style="flex:1"><label>Vencimiento</label><input id="cardExp" placeholder="MM/AA" maxlength="5"></div>
+            <div class="form-field" style="flex:1"><label>CVV</label><input id="cardCvv" placeholder="123" maxlength="3" type="password"></div>
+        </div>
+        <button class="btn-primary" style="width:100%; margin-top:15px;" onclick="procesarPagoFinal()">Pagar y Confirmar</button>
+    </div>
+
+    <p id="paymentMsg" class="form-message" style="text-align:center;"></p>
+  </div>
+</div>
+
+<!-- MODAL DE CALIFICACIÓN -->
+<div id="ratingModal" class="payment-modal">
+  <div class="payment-content" style="max-width: 350px; text-align: center;">
+    <h2 style="margin-top:0; color:var(--text);">¿Cómo estuvo tu pedido?</h2>
+    <p style="color:var(--text-soft); font-size: 0.9rem;">Calificá la atención y la comida.</p>
+
+    <div id="starContainer" style="font-size: 2.5rem; cursor: pointer; margin: 20px 0;">
+      <span onclick="setRating(1)" class="star">☆</span>
+      <span onclick="setRating(2)" class="star">☆</span>
+      <span onclick="setRating(3)" class="star">☆</span>
+      <span onclick="setRating(4)" class="star">☆</span>
+      <span onclick="setRating(5)" class="star">☆</span>
+    </div>
+    <input type="hidden" id="ratingValue" value="0">
+
+    <div class="form-field" style="text-align: left;">
+      <label>Comentario (opcional)</label>
+      <input id="ratingComment" placeholder="Ej. La comida llegó caliente">
+    </div>
+
+    <button id="ratingSendBtn" class="btn-primary" style="width:100%; margin-top:15px;" onclick="enviarCalificacion()">Enviar Calificación</button>
+    <button class="btn-ghost" style="width:100%; margin-top:10px;" onclick="cerrarModalCalificacion()">Cancelar</button>
+
+    <p id="ratingMsg" class="form-message"></p>
+  </div>
+</div>
+
+<script>
+  // ---------- TEMA OSCURO ----------
+  const root = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  function applyTheme(theme){
+    if(theme === 'dark'){ root.setAttribute('data-theme', 'dark'); themeToggle.textContent = '☀️'; }
+    else { root.removeAttribute('data-theme'); themeToggle.textContent = '🌙'; }
+    try{ localStorage.setItem('pideya-theme', theme); }catch(e){}
+  }
+  let savedTheme = 'light'; try{ savedTheme = localStorage.getItem('pideya-theme') || 'light'; }catch(e){}
+  applyTheme(savedTheme);
+  themeToggle.addEventListener('click', () => { applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); });
+
+  // ---------- TUTORIAL DINÁMICO ----------
+  function updateTutorial(role = null) {
+    const titleEl = document.getElementById('howTitle');
+    const kickerEl = document.getElementById('howKicker');
+    const container = document.getElementById('howStepsContainer');
+
+    if (role === 'RESTAURANTE') {
+      kickerEl.textContent = 'Guía para Restaurantes';
+      titleEl.textContent = 'Gestioná tu local como un pro.';
+      container.innerHTML = `
+        <div class="step-card"><div class="step-num">1</div><h3>Cargá tu menú</h3><p>Usá tu panel para agregar platillos y precios. Aparecerán automáticamente para los clientes.</p></div>
+        <div class="step-card"><div class="step-num">2</div><h3>Gestioná pedidos</h3><p>Recibí pedidos en tiempo real. Marcá "Empezar a preparar" y luego "Listo".</p></div>
+        <div class="step-card"><div class="step-num">3</div><h3>Asigná repartidor</h3><p>Cuando el pedido esté listo, asignale un repartidor disponible.</p></div>
+      `;
+    } else if (role === 'REPARTIDOR') {
+      kickerEl.textContent = 'Guía para Repartidores';
+      titleEl.textContent = 'A tu ritmo, a tu manera.';
+      container.innerHTML = `
+        <div class="step-card"><div class="step-num">1</div><h3>Activate</h3><p>Ponete "En línea" para empezar a ver pedidos disponibles.</p></div>
+        <div class="step-card"><div class="step-num">2</div><h3>Aceptá pedidos</h3><p>Tomá el pedido que más te convenga. El restaurante y el cliente verán que ya lo tenés.</p></div>
+        <div class="step-card"><div class="step-num">3</div><h3>Entregá</h3><p>Buscá el pedido en el restaurante y llevalo al cliente. ¡Ganancia asegurada!</p></div>
+      `;
+    } else if (role === 'CLIENTE') {
+      kickerEl.textContent = 'Guía para Clientes';
+      titleEl.textContent = 'Pedí en tres simples pasos.';
+      container.innerHTML = `
+        <div class="step-card"><div class="step-num">1</div><h3>Elegí</h3><p>Navegá por los restaurantes disponibles y explorá sus menús.</p></div>
+        <div class="step-card"><div class="step-num">2</div><h3>Pedí</h3><p>Agregá productos al carrito y confirmá tu pedido.</p></div>
+        <div class="step-card"><div class="step-num">3</div><h3>Recibí</h3><p>Un repartidor llevará tu comida a la puerta de tu casa.</p></div>
+      `;
+    } else {
+      kickerEl.textContent = 'Tres pasos';
+      titleEl.textContent = 'De la cocina a tu mesa, sin vueltas.';
+      container.innerHTML = `
+        <div class="step-card"><div class="step-num">1</div><h3>Elegí qué se te antoja</h3><p>Explorá restaurantes cercanos.</p></div>
+        <div class="step-card"><div class="step-num">2</div><h3>Confirmá tu pedido</h3><p>El restaurante empieza a preparar todo al instante.</p></div>
+        <div class="step-card"><div class="step-num">3</div><h3>Seguilo en el mapa</h3><p>Mirá cada movimiento del repartidor hasta tu puerta.</p></div>
+      `;
+    }
+  }
+  updateTutorial(null);
+
+  // ---------- LÓGICA DE LA API Y MAPAS ----------
+  const API_BASE = 'http://localhost:8080';
+  const apiStatusDot = document.getElementById('apiStatusDot'); const apiStatusText = document.getElementById('apiStatusText');
+  const restaurantSelect = document.getElementById('restaurantSelect'); const restaurantGrid = document.getElementById('restaurantGrid');
+  const productGrid = document.getElementById('productGrid'); const menuRestaurantName = document.getElementById('menuRestaurantName');
+  const cartItems = document.getElementById('cartItems'); const cartTotal = document.getElementById('cartTotal'); const placeOrderBtn = document.getElementById('placeOrderBtn');
+  let restaurants = []; let selectedRestaurant = null; let menuProducts = []; let cart = []; let currentUser = null;
+  let clientCoords = null;
+
+  let mapClienteInst = null; let mapRepartidorInst = null;
+  let routeLayerCliente = null; let routeLayerRepartidor = null;
+
+  function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+  function money(value) { return new Intl.NumberFormat('es-GT',{style:'currency',currency:'GTQ'}).format(Number(value)||0); }
+
+  async function apiRequest(path, options={}) {
+    const response = await fetch(`${API_BASE}${path}`, { ...options, headers: {'Content-Type':'application/json', ...(options.headers||{})} });
+    const text = await response.text();
+    let data = null;
+    if (text) { try { data = JSON.parse(text); } catch { data = text; } }
+    if (!response.ok) {
+      const msg = data && typeof data === 'object' ? (data.message || data.error || data.detail) : data;
+      throw new Error(msg || `Error HTTP ${response.status}`);
+    }
+    return data;
+  }
+  function setApiStatus(state, message) { apiStatusDot.className = 'status-dot' + (state === 'ok' ? ' ok' : state === 'bad' ? ' bad' : ''); apiStatusText.textContent = message; }
+  function restaurantLabel(r) { return r.nombreComercial || r.nombre || `Restaurante #${r.id}`; }
+
+  // ---------- CALIFICACIONES GUARDADAS (para mostrar "Calificado") ----------
+  function ratedKey() { return 'pideya-rated-' + (currentUser && currentUser.id != null ? currentUser.id : '0'); }
+  function getRatedMap() {
+    try { return JSON.parse(localStorage.getItem(ratedKey())) || {}; } catch (e) { return {}; }
+  }
+  function saveRated(pedidoId, estrellas, comentario) {
+    const map = getRatedMap();
+    map[String(pedidoId)] = { estrellas: estrellas, comentario: comentario || '' };
+    try { localStorage.setItem(ratedKey(), JSON.stringify(map)); } catch (e) {}
+  }
+  // Devuelve {estrellas, comentario} si el pedido ya fue calificado, o null
+  function getRatingInfo(order) {
+    const local = getRatedMap()[String(order.id)];
+    if (local) return local;
+    // Por si el backend devuelve la calificación dentro del pedido
+    const c = order.calificacion;
+    if (c && typeof c === 'object' && c.estrellas) return { estrellas: Number(c.estrellas), comentario: c.comentario || '' };
+    if (order.estrellas) return { estrellas: Number(order.estrellas), comentario: order.comentario || '' };
+    if (order.calificado === true) return { estrellas: Number(order.calificacion) || 0, comentario: '' };
+    return null;
+  }
+  function renderRatedBadge(info) {
+    const n = Math.max(0, Math.min(5, Number(info.estrellas) || 0));
+    const stars = n > 0 ? '★'.repeat(n) + '☆'.repeat(5 - n) : '';
+    return `<div class="rated-badge">
+      <span class="rated-title">✅ Pedido calificado</span>
+      ${stars ? `<span class="rated-stars">${stars}</span>` : ''}
+      ${info.comentario ? `<span class="rated-comment">"${escapeHtml(info.comentario)}"</span>` : ''}
+    </div>`;
+  }
+
+  function calcularDistancia(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+  }
+
+  async function dibujarMapa(containerId, origenLat, origenLon, destinoLat, destinoLon, isCliente) {
+    if (!document.getElementById(containerId)) return;
+    let mapInst, routeLayer;
+
+    if (isCliente) {
+      if (mapClienteInst) mapClienteInst.remove();
+      mapClienteInst = L.map(containerId).setView([origenLat, origenLon], 13);
+      mapInst = mapClienteInst; routeLayer = routeLayerCliente;
+    } else {
+      if (mapRepartidorInst) mapRepartidorInst.remove();
+      mapRepartidorInst = L.map(containerId).setView([origenLat, origenLon], 13);
+      mapInst = mapRepartidorInst; routeLayer = routeLayerRepartidor;
+    }
+    mapInst.invalidateSize();
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapInst);
+    L.marker([origenLat, origenLon]).addTo(mapInst).bindPopup("Origen (Restaurante)").openPopup();
+    L.marker([destinoLat, destinoLon]).addTo(mapInst).bindPopup("Destino (Cliente)");
+
+    try {
+      const url = `${API_BASE}/api/rutas?origenLat=${origenLat}&origenLon=${origenLon}&destinoLat=${destinoLat}&destinoLon=${destinoLon}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Error al calcular ruta");
+      const data = await response.json();
+      if (routeLayer) mapInst.removeLayer(routeLayer);
+      const newRouteLayer = L.geoJSON(data.geometria, { style: { color: '#FF2E63', weight: 5, opacity: 0.8 } }).addTo(mapInst);
+      if(isCliente) routeLayerCliente = newRouteLayer; else routeLayerRepartidor = newRouteLayer;
+      mapInst.fitBounds(newRouteLayer.getBounds());
+    } catch (error) {
+      L.polyline([[origenLat, origenLon], [destinoLat, destinoLon]], {color: 'gray', dashArray: '5, 5'}).addTo(mapInst);
+      mapInst.fitBounds([[origenLat, origenLon], [destinoLat, destinoLon]]);
+    }
+  }
+
+  window.verSeguimientoCliente = function() {
+    const origenLat = 14.6349; const origenLon = -90.5069;
+    const destinoLat = clientCoords ? clientCoords.lat : 14.5995;
+    const destinoLon = clientCoords ? clientCoords.lon : -90.5150;
+    // Mostrar primero el panel para que Leaflet calcule bien el tamaño del mapa
+    document.getElementById('trackingPanel').style.display = 'block';
+    dibujarMapa('mapCliente', origenLat, origenLon, destinoLat, destinoLon, true);
+    document.getElementById('trackingPanel').scrollIntoView({behavior: 'smooth'});
+  };
+
+  window.verSeguimientoRepartidor = function() {
+    const origenLat = 14.6349; const origenLon = -90.5069;
+    const destinoLat = clientCoords ? clientCoords.lat : 14.5995;
+    const destinoLon = clientCoords ? clientCoords.lon : -90.5150;
+    document.getElementById('trackingPanelRep').style.display = 'block';
+    dibujarMapa('mapRepartidor', origenLat, origenLon, destinoLat, destinoLon, false);
+    document.getElementById('trackingPanelRep').scrollIntoView({behavior: 'smooth'});
+  };
+
+  async function loadRestaurants() {
+    setApiStatus('loading','Conectando con el backend…');
+    restaurantGrid.innerHTML = '<div class="api-empty">Cargando restaurantes…</div>';
+    try {
+      const data = await apiRequest('/api/restaurantes');
+      restaurants = Array.isArray(data) ? data : [];
+
+      if (clientCoords) {
+          restaurants.forEach(r => {
+              const rLat = r.latitud || 14.6349;
+              const rLon = r.longitud || -90.5069;
+              r.distancia = calcularDistancia(clientCoords.lat, clientCoords.lon, rLat, rLon);
+          });
+          restaurants.sort((a, b) => a.distancia - b.distancia);
+      }
+
+      restaurantSelect.innerHTML = '<option value="">Seleccioná un restaurante</option>' +
+        restaurants.map(r => {
+            const distText = r.distancia ? ` (a ${r.distancia.toFixed(1)} km)` : '';
+            return `<option value="${escapeHtml(r.id)}">${escapeHtml(restaurantLabel(r))}${distText}</option>`;
+        }).join('');
+
+      if (!restaurants.length) {
+        restaurantGrid.innerHTML = '<div class="api-empty"><h3>No hay restaurantes registrados</h3></div>';
+      } else {
+        restaurantGrid.innerHTML = restaurants.map((r,i) => {
+          const distBadge = r.distancia ? `<span style="background:var(--lime); color:var(--ink); padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold; margin-left:8px;">A ${r.distancia.toFixed(1)} km</span>` : '';
+          return `
+          <article class="api-card">
+            <div class="food-emoji">${['🍔','🍕','🌮','🍜','🥗','🍗'][i%6]}</div>
+            <h3>${escapeHtml(restaurantLabel(r))} ${distBadge}</h3>
+            <p>${escapeHtml(r.direccion || 'Restaurante disponible')}</p>
+            <button type="button" data-open-restaurant="${escapeHtml(r.id)}">Ver menú</button>
+          </article>`;
+        }).join('');
+      }
+      setApiStatus('ok',`Conexión correcta.`);
+    } catch (err) {
+      setApiStatus('bad',`No se pudo consultar la API: ${err.message}.`);
+    }
+  }
+
+  async function loadProducts(restaurantId) {
+    const restaurant = restaurants.find(r => String(r.id) === String(restaurantId));
+    if (!restaurant) return;
+    selectedRestaurant = restaurant; menuRestaurantName.textContent = restaurantLabel(restaurant); restaurantSelect.value = String(restaurant.id);
+    productGrid.innerHTML = '<div class="api-empty">Cargando menú…</div>';
+    try {
+      const data = await apiRequest(`/api/productos/restaurante/${encodeURIComponent(restaurant.id)}`);
+      menuProducts = Array.isArray(data) ? data.filter(p => p.disponible !== false) : [];
+      if (!menuProducts.length) {
+        productGrid.innerHTML = '<div class="api-empty">No hay productos.</div>';
+      } else {
+        productGrid.innerHTML = menuProducts.map((p,i) => `<article class="api-card"><div class="food-emoji">${['🍽️','🍔','🍕','🥤','🍰','🌯'][i%6]}</div><h3>${escapeHtml(p.nombre || 'Producto')}</h3><p>${escapeHtml(p.descripcion || '')}</p><div class="price">${money(p.precio)}</div><button type="button" data-add-product="${escapeHtml(p.id)}">Agregar</button></article>`).join('');
+      }
+      if (cart.length && cart[0].restauranteId !== restaurant.id) { cart = []; renderCart(); }
+    } catch (err) { productGrid.innerHTML = `<div class="api-empty">No se pudo cargar menú.</div>`; }
+  }
+
+  function renderCart() {
+    if (!cart.length) { cartItems.innerHTML = '<div class="api-empty">Tu carrito está vacío.</div>'; cartTotal.textContent = money(0); placeOrderBtn.disabled = true; return; }
+    cartItems.innerHTML = cart.map(item => `<div class="cart-row"><div><strong>${escapeHtml(item.nombre)}</strong><small>${money(item.precio)} c/u</small></div><div class="qty-controls"><button type="button" data-cart-minus="${item.productoId}">−</button><span>${item.cantidad}</span><button type="button" data-cart-plus="${item.productoId}">+</button></div><strong>${money(item.precio*item.cantidad)}</strong></div>`).join('');
+    cartTotal.textContent = money(cart.reduce((sum,i)=>sum+i.precio*i.cantidad,0));
+    placeOrderBtn.disabled = !currentUser || !selectedRestaurant;
+  }
+  function addToCart(productId) {
+    const product = menuProducts.find(p => String(p.id) === String(productId));
+    if (!product || !selectedRestaurant) return;
+    if (cart.length && cart[0].restauranteId !== selectedRestaurant.id) cart = [];
+    const existing = cart.find(i => i.productoId === product.id);
+    if (existing) existing.cantidad += 1;
+    else cart.push({productoId:product.id,nombre:product.nombre,precio:Number(product.precio)||0,cantidad:1,restauranteId:selectedRestaurant.id});
+    document.getElementById('orderMessage').textContent = ''; renderCart();
+  }
+  function updateCart(productId, delta) {
+    const item = cart.find(i => String(i.productoId) === String(productId));
+    if (!item) return;
+    item.cantidad += delta;
+    if (item.cantidad <= 0) cart = cart.filter(i => i !== item);
+    renderCart();
+  }
+
+  // GEOLOCALIZACIÓN Y AUTOCOMPLETADO DE DIRECCIÓN
+  document.getElementById('btnGeolocalizacion').addEventListener('click', () => {
+      const status = document.getElementById('geoStatus');
+      if (!navigator.geolocation) {
+          status.textContent = "Tu navegador no soporta geolocalización.";
+          status.style.color = "red";
+          return;
+      }
+      status.textContent = "Obteniendo ubicación...";
+      status.style.color = "var(--text-soft)";
+
+      navigator.geolocation.getCurrentPosition(
+          async (position) => {
+              clientCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
+              status.textContent = "¡Ubicación detectada! Buscando dirección...";
+              status.style.color = "green";
+
+              try {
+                  const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${clientCoords.lat}&lon=${clientCoords.lon}`);
+                  const data = await res.json();
+                  if (data && data.display_name) {
+                      const partes = data.display_name.split(',');
+                      const direccionCorta = partes.slice(0, 3).join(', ').trim();
+                      document.getElementById('deliveryAddress').value = direccionCorta;
+                      status.textContent = "¡Dirección autocompletada!";
+                  } else {
+                      document.getElementById('deliveryAddress').value = "Ubicación seleccionada en el mapa";
+                      status.textContent = "Ubicación detectada. No se pudo obtener la calle.";
+                  }
+              } catch (e) {
+                  document.getElementById('deliveryAddress').value = "Ubicación seleccionada (GPS)";
+                  status.textContent = "Ubicación detectada.";
+              }
+
+              loadRestaurants();
+          },
+          (error) => {
+              status.textContent = "No se pudo obtener la ubicación. Asegúrate de dar permisos.";
+              status.style.color = "red";
+          },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+  });
+
+  // BOTÓN DE PRUEBA (Simula estar en la universidad en Amatitlán)
+  document.getElementById('btnUbicacionTest').addEventListener('click', () => {
+      const status = document.getElementById('geoStatus');
+      clientCoords = { lat: 14.4770, lon: -90.6340 };
+
+      document.getElementById('deliveryAddress').value = "Amatitlán, Guatemala (Ubicación de prueba)";
+      status.textContent = "¡Simulando ubicación en Amatitlán!";
+      status.style.color = "green";
+
+      loadRestaurants(); // Recarga y ordena por cercanía a Amatitlán
+  });
+
+  // ---------- LOGIN ----------
+  document.getElementById('registerForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const message = document.getElementById('registerMessage'); message.textContent = 'Registrando…';
+    const rol = document.getElementById('regRole').value;
+    const body = { nombre: document.getElementById('regName').value.trim(), email: document.getElementById('regEmail').value.trim(), password: document.getElementById('regPassword').value, direccionFavorita: document.getElementById('regAddress').value.trim() };
+    let endpoint = '/api/clientes/registro';
+    if (rol === 'RESTAURANTE') { endpoint = '/api/restaurantes/registro'; body.nombreComercial = body.nombre; body.direccion = body.direccionFavorita; }
+    else if (rol === 'REPARTIDOR') { endpoint = '/api/repartidores/registro'; body.vehiculo = 'Moto'; }
+    try {
+      const user = await apiRequest(endpoint, {method:'POST', body:JSON.stringify(body)});
+      message.textContent = `Cuenta creada (ID: ${user.id}). Ahora iniciá sesión.`;
+      document.getElementById('loginEmail').value = body.email; e.target.reset();
+    } catch (err) { message.textContent = `Error: ${err.message}`; }
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const message = document.getElementById('loginMessage'); message.textContent = 'Verificando…';
+    const body = { email: document.getElementById('loginEmail').value.trim(), password: document.getElementById('loginPassword').value };
+    try {
+      const user = await apiRequest('/api/clientes/login', {method:'POST', body:JSON.stringify(body)});
+      showAccount(user); message.textContent = 'Sesión iniciada.'; document.getElementById('loginPassword').value = '';
+    } catch (err) { message.textContent = `Error: ${err.message}`; }
+  });
+
+  // ---------- DASHBOARDS ----------
+  function showAccount(user) {
+    currentUser = user;
+    const rol = user.rol || 'CLIENTE';
+    try { sessionStorage.setItem('pideya-user', JSON.stringify(user)); } catch(e) {}
+
+    document.getElementById('cuenta').style.display = 'none';
+    document.getElementById('homeHero').style.display = 'none';
+    document.querySelector('.marquee-band').style.display = 'none';
+    document.getElementById('navOrderBtn').style.display = 'none';
+
+    const dashboardZone = document.getElementById('dashboardZone'); dashboardZone.classList.add('active');
+    document.querySelectorAll('[data-role-panel]').forEach(p => p.classList.remove('active'));
+    document.querySelector(`[data-role-panel="${rol}"]`)?.classList.add('active');
+
+    updateTutorial(rol);
+    document.getElementById('como-funciona').style.display = 'block';
+
+    const titles = { CLIENTE: ['Panel de Cliente', 'Explorá y pedí.'], REPARTIDOR: ['Panel de Repartidor', 'Tus entregas.'], RESTAURANTE: ['Panel de Restaurante', 'Tu local.'] };
+    const t = titles[rol] || titles.CLIENTE;
+    document.getElementById('dashTitle').textContent = t[0]; document.getElementById('dashSubtitle').textContent = t[1];
+    const badge = document.getElementById('dashRoleBadge'); badge.textContent = rol; badge.className = `dash-badge rol-${rol}`;
+
+    if (rol === 'CLIENTE') {
+      document.getElementById('clientOnlyZone').style.display = 'block';
+      document.getElementById('clientOnlyZone').classList.remove('hidden-logged-in');
+      loadRestaurants(); renderCart(); refreshClienteDashboard(user);
+    } else {
+      document.getElementById('clientOnlyZone').style.display = 'none';
+    }
+
+    if (rol === 'REPARTIDOR') refreshRepartidorDashboard(user);
+    if (rol === 'RESTAURANTE') refreshRestauranteDashboard(user);
+  }
+
+  document.getElementById('dashLogout').addEventListener('click', () => {
+    currentUser = null; cart = []; try { sessionStorage.removeItem('pideya-user'); } catch(e) {}
+    document.getElementById('dashboardZone').classList.remove('active');
+    document.getElementById('cuenta').style.display = 'block';
+    document.getElementById('homeHero').style.display = 'block';
+    document.querySelector('.marquee-band').style.display = 'block';
+    document.getElementById('navOrderBtn').style.display = 'block';
+    document.getElementById('clientOnlyZone').style.display = 'none';
+    document.getElementById('trackingPanel').style.display = 'none';
+    document.getElementById('trackingPanelRep').style.display = 'none';
+    updateTutorial(null);
+    document.getElementById('como-funciona').style.display = 'block';
+    renderCart();
+    loadRestaurants();
+  });
+
+  // --- CLIENTE ---
+  async function refreshClienteDashboard(user) {
+    document.getElementById('cliAddress').textContent = user.direccionFavorita || 'No registrada';
+    try {
+      const pedidos = await apiRequest(`/api/pedidos/cliente/${user.id}`);
+      const pedidosArr = Array.isArray(pedidos) ? pedidos : [];
+      document.getElementById('cliTotalOrders').textContent = pedidosArr.length;
+      document.getElementById('cliActiveOrders').textContent = pedidosArr.filter(p => p.estado !== 'ENTREGADO' && p.estado !== 'CANCELADO').length;
+
+      document.getElementById('cliOrderList').innerHTML = pedidosArr.length
+        ? pedidosArr.map(o => {
+            const rating = o.estado === 'ENTREGADO' ? getRatingInfo(o) : null;
+            return `
+          <div class="history-item">
+            <strong>Pedido #${o.id}</strong> - ${money(o.total)}
+            <p style="margin:6px 0;color:var(--text-soft)">Estado: <b style="color:${o.estado === 'ENTREGADO' ? 'var(--lime)' : 'var(--guava)'}">${o.estado}</b> | Pago: <b>${o.metodoPago || 'EFECTIVO'} ${o.pagado ? '(Pagado)' : '(Pendiente)'}</b></p>
+
+            ${o.estado !== 'ENTREGADO' && o.estado !== 'CANCELADO'
+              ? `<button class="small-action" onclick="verSeguimientoCliente()">Ver en Mapa</button>`
+              : ''}
+
+            ${o.estado === 'ENTREGADO'
+              ? (rating
+                  ? renderRatedBadge(rating)
+                  : `<button class="btn-primary" style="padding:8px 16px; font-size:.85rem; box-shadow:none; margin-top:5px;" onclick="abrirModalCalificacion(${o.id})">⭐ Calificar Pedido</button>`)
+              : ''}
+          </div>`;
+          }).join('')
+        : '<div class="api-empty">No tenés pedidos aún.</div>';
+    } catch(e) {}
+  }
+
+  // --- REPARTIDOR ---
+  async function refreshRepartidorDashboard(user) {
+    const pool = document.getElementById('repOrderPool');
+    pool.innerHTML = '<div class="api-empty">Buscando pedidos...</div>';
+
+    try {
+      // 1. Traemos TODOS los pedidos (usando el endpoint que creamos antes o el de pendientes)
+      let pedidos = await apiRequest('/api/pedidos/todos').catch(() => []);
+
+      // Si no existe el /todos, usamos /pendientes
+      if (!pedidos || pedidos.length === 0) {
+          pedidos = await apiRequest('/api/pedidos/pendientes').catch(() => []);
+      }
+
+      if (!pedidos || !pedidos.length) {
+        pool.innerHTML = '<div class="api-empty">No hay pedidos en el sistema.</div>';
+        return;
+      }
+
+      // 2. Filtramos los pedidos asignados a MÍ (usando String para evitar errores de tipo)
+      const misPedidos = pedidos.filter(p =>
+          p.repartidor &&
+          String(p.repartidor.id) === String(user.id) &&
+          p.estado !== 'ENTREGADO' &&
+          p.estado !== 'CANCELADO'
+      );
+
+      let html = '';
+
+      if (misPedidos.length > 0) {
+        html += `<h4 style="color:var(--mango); margin-bottom:10px;">Mis Entregas Activas</h4>`;
+        html += misPedidos.map(p => `
+          <div class="history-item" style="border-left: 4px solid var(--mango);">
+            <div style="display:flex; justify-content:space-between;">
+              <strong>Pedido #${p.id}</strong>
+              <span style="color:var(--guava); font-weight:bold;">${p.estado}</span>
+            </div>
+            <p style="margin:8px 0;font-size:.9rem;">
+              Cliente: ${escapeHtml(p.cliente?.nombre || 'Cliente')} <br>
+              Restaurante: ${escapeHtml(p.restaurante?.nombreComercial || 'Restaurante')} <br>
+              Total: ${money(p.total)}
+            </p>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="small-action" onclick="verSeguimientoRepartidor()">Ver Mapa</button>
+              <button class="btn-primary" style="padding:8px 16px; font-size:.85rem; box-shadow:none;" onclick="marcarEntregado(${p.id})">Marcar Entregado</button>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        html = '<div class="api-empty">No tienes pedidos asignados en este momento.</div>';
+      }
+
+      pool.innerHTML = html;
+
+    } catch(e) {
+      console.error(e);
+      pool.innerHTML = `<div class="api-empty">Error al cargar pedidos.</div>`;
+    }
+  }
+
+  window.aceptarPedido = async function(pedidoId, repartidorId) {
+    if(!confirm("¿Tomar pedido?")) return;
+    try { await apiRequest(`/api/pedidos/${pedidoId}/repartidor/${repartidorId}`, { method: 'PUT' }); alert("¡Asignado!"); refreshRepartidorDashboard(currentUser); verSeguimientoRepartidor(); } catch(e) { alert("Error: " + e.message); }
+  };
+
+  window.marcarEntregado = async function(pedidoId) {
+    if(!confirm("¿Confirmas que ya entregaste este pedido al cliente?")) return;
+    try {
+      await apiRequest(`/api/pedidos/${pedidoId}/estado`, { method: 'PUT', body: JSON.stringify("ENTREGADO") });
+      alert("¡Pedido entregado con éxito!");
+      refreshRepartidorDashboard(currentUser);
+    } catch(e) { alert("Error: " + e.message); }
+  };
+
+  // --- RESTAURANTE ---
+  async function refreshRestauranteDashboard(user) {
+    try {
+      const [productos, pedidos, todosRepartidores] = await Promise.all([
+        apiRequest(`/api/productos/restaurante/${user.id}`).catch(()=>[]),
+        apiRequest(`/api/pedidos/restaurante/${user.id}`).catch(()=>[]),
+        apiRequest('/api/repartidores').catch(()=>[])
+      ]);
+
+      document.getElementById('resProductCount').textContent = productos.length;
+      document.getElementById('resPendingOrders').textContent = pedidos.filter(p => p.estado === 'PENDIENTE').length;
+
+      const menuList = document.getElementById('resMenuList');
+      menuList.innerHTML = productos.length ? productos.map(p => `<div class="history-item" style="display:flex; justify-content:space-between;"><div><strong>${escapeHtml(p.nombre)}</strong><p style="font-size:.85rem">${escapeHtml(p.descripcion)}</p></div><strong style="color:var(--guava)">${money(p.precio)}</strong></div>`).join('') : '<div class="api-empty">Sin productos.</div>';
+
+      const form = document.getElementById('addProductForm');
+      const newForm = form.cloneNode(true);
+      form.parentNode.replaceChild(newForm, form);
+      newForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const msg = document.getElementById('addProdMsg'); msg.textContent = 'Guardando...';
+        const body = { nombre: document.getElementById('prodName').value.trim(), descripcion: document.getElementById('prodDesc').value.trim(), precio: parseFloat(document.getElementById('prodPrice').value), disponible: true, restaurante: { id: user.id } };
+        try {
+          await apiRequest('/api/productos', { method: 'POST', body: JSON.stringify(body) });
+          msg.textContent = '¡Guardado!'; msg.style.color = 'green';
+          newForm.reset(); refreshRestauranteDashboard(user);
+        } catch (err) { msg.textContent = `Error: ${err.message}`; msg.style.color = 'red'; }
+      });
+
+      const list = document.getElementById('resOrderList');
+      const activos = pedidos.filter(p => p.estado === 'PENDIENTE' || p.estado === 'EN_PREPARACION' || p.estado === 'LISTO');
+      list.innerHTML = activos.length ? activos.map(p => `
+        <div class="history-item">
+          <div style="display:flex; justify-content:space-between;"><strong>Pedido #${p.id}</strong><span style="color:var(--guava)">${p.estado}</span></div>
+          <p style="margin:8px 0;">Total: ${money(p.total)} | Cliente: ${escapeHtml(p.cliente?.nombre || '')} | Pago: ${p.metodoPago || 'EFECTIVO'} ${p.pagado ? '(Pagado)' : '(Pendiente)'}</p>
+          ${p.estado === 'PENDIENTE' ? `<button class="small-action" onclick="cambiarEstado(${p.id}, 'EN_PREPARACION')">Preparar</button>` : ''}
+          ${p.estado === 'EN_PREPARACION' ? `<button class="small-action" onclick="cambiarEstado(${p.id}, 'LISTO')">Listo</button>` : ''}
+          ${p.estado === 'LISTO' && !p.repartidor ? `
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <select id="selRep_${p.id}" style="padding:8px;border-radius:8px;"><option value="">Asignar repartidor...</option>${todosRepartidores.map(r => `<option value="${r.id}">${escapeHtml(r.nombre)}</option>`).join('')}</select>
+              <button class="small-action" onclick="asignarRepartidor(${p.id})">Asignar</button>
+            </div>
+          ` : ''}
+          ${p.repartidor ? `<p style="color:var(--lime);font-size:.85rem;font-weight:bold;">Repartidor: ${escapeHtml(p.repartidor.nombre)}</p>` : ''}
+        </div>`).join('') : '<div class="api-empty">Sin pedidos activos.</div>';
+
+    } catch(e) { document.getElementById('resOrderList').innerHTML = `<div class="api-empty">${escapeHtml(e.message)}</div>`; }
+  }
+  window.cambiarEstado = async function(pedidoId, nuevoEstado) {
+    try { await apiRequest(`/api/pedidos/${pedidoId}/estado`, { method: 'PUT', body: JSON.stringify(nuevoEstado) }); refreshRestauranteDashboard(currentUser); } catch(e) { alert("Error: " + e.message); }
+  };
+  window.asignarRepartidor = async function(pedidoId) {
+    const select = document.getElementById(`selRep_${pedidoId}`);
+    if (!select.value) return alert("Seleccioná un repartidor.");
+    try {
+      await apiRequest(`/api/pedidos/${pedidoId}/repartidor/${select.value}`, { method: 'PUT' });
+      alert("Asignado."); refreshRestauranteDashboard(currentUser);
+    } catch(e) { alert("Error: " + e.message); }
+  };
+
+  // ---------- PEDIDOS Y PAGOS (CLIENTE) ----------
+  let pedidoTemporalId = null;
+
+  document.getElementById('placeOrderBtn').addEventListener('click', async () => {
+    const message = document.getElementById('orderMessage');
+    if (!currentUser) { message.textContent = 'Iniciá sesión.'; return; }
+    if (!cart.length || !selectedRestaurant) { message.textContent = 'Agregá productos.'; return; }
+    const address = document.getElementById('deliveryAddress').value.trim();
+    if (!address) { message.textContent = 'Ingresá dirección.'; return; }
+
+    const body = {
+        clienteId: currentUser.id,
+        restauranteId: selectedRestaurant.id,
+        items: cart.map(i=>({productoId:i.productoId, cantidad:i.cantidad})),
+        latitudEntrega: clientCoords ? clientCoords.lat : 14.5995,
+        longitudEntrega: clientCoords ? clientCoords.lon : -90.5150
+    };
+
+    placeOrderBtn.disabled = true; message.textContent = 'Creando pedido…';
+    try {
+      const order = await apiRequest('/api/pedidos', {method:'POST', body:JSON.stringify(body)});
+      pedidoTemporalId = order.id;
+
+      // Mostrar modal de pago
+      document.getElementById('paymentModal').style.display = 'flex';
+      document.getElementById('paymentStep1').style.display = 'block';
+      document.getElementById('paymentStep2').style.display = 'none';
+      document.getElementById('paymentMsg').textContent = '';
+      document.getElementById('paymentMsg').style.color = 'var(--text-soft)';
+
+      cart = []; renderCart();
+    } catch (err) { message.textContent = `Error: ${err.message}`; renderCart(); }
+  });
+
+  function irAPasoPago() {
+      const metodo = document.querySelector('input[name="metodoPago"]:checked').value;
+      if (metodo === 'TARJETA') {
+          document.getElementById('paymentStep1').style.display = 'none';
+          document.getElementById('paymentStep2').style.display = 'block';
+      } else {
+          procesarPagoFinal('EFECTIVO');
+      }
+  }
+
+  async function procesarPagoFinal(metodoForzado = null) {
+      const msg = document.getElementById('paymentMsg');
+      msg.textContent = 'Procesando pago...';
+      msg.style.color = 'var(--text-soft)';
+
+      const metodo = (typeof metodoForzado === 'string' && metodoForzado) ? metodoForzado : document.querySelector('input[name="metodoPago"]:checked').value;
+
+      const pagoBody = {
+          pedidoId: pedidoTemporalId,
+          metodoPago: metodo
+      };
+
+      if (metodo === 'TARJETA') {
+          pagoBody.numeroTarjeta = document.getElementById('cardNumber').value;
+          pagoBody.fechaExpiracion = document.getElementById('cardExp').value;
+          pagoBody.cvv = document.getElementById('cardCvv').value;
+          if(pagoBody.numeroTarjeta.length < 16) { msg.textContent = "Tarjeta inválida"; msg.style.color = "red"; return; }
+      }
+
+      try {
+          await apiRequest('/api/pagos/procesar', {method:'POST', body:JSON.stringify(pagoBody)});
+
+          msg.textContent = '¡Pago exitoso!';
+          msg.style.color = 'green';
+
+          setTimeout(() => {
+              document.getElementById('paymentModal').style.display = 'none';
+              document.getElementById('orderMessage').textContent = `¡Pedido #${pedidoTemporalId} confirmado y pagado!`;
+              refreshClienteDashboard(currentUser);
+              verSeguimientoCliente();
+          }, 1500);
+
+      } catch (err) {
+          msg.textContent = `Error al pagar: ${err.message}`;
+          msg.style.color = 'red';
+      }
+  }
+
+  // ---------- CALIFICACIONES ----------
+  let pedidoACalificar = null;
+
+  window.abrirModalCalificacion = function(pedidoId) {
+      pedidoACalificar = pedidoId;
+      setRating(0); // Reiniciar estrellas
+      document.getElementById('ratingComment').value = '';
+      document.getElementById('ratingMsg').textContent = '';
+      document.getElementById('ratingSendBtn').disabled = false;
+      document.getElementById('ratingModal').style.display = 'flex';
+  };
+
+  window.cerrarModalCalificacion = function() {
+      document.getElementById('ratingModal').style.display = 'none';
+  };
+
+  window.setRating = function(valor) {
+      document.getElementById('ratingValue').value = valor;
+      const estrellas = document.querySelectorAll('.star');
+      estrellas.forEach((estrella, index) => {
+          if (index < valor) {
+              estrella.textContent = '★';
+              estrella.style.color = 'var(--banana)';
+          } else {
+              estrella.textContent = '☆';
+              estrella.style.color = 'var(--text)';
+          }
+      });
+  };
+
+  window.enviarCalificacion = async function() {
+      const valor = parseInt(document.getElementById('ratingValue').value);
+      const comentario = document.getElementById('ratingComment').value.trim();
+      const msg = document.getElementById('ratingMsg');
+      const sendBtn = document.getElementById('ratingSendBtn');
+
+      if (!valor || valor === 0) {
+          msg.textContent = "Por favor, seleccioná al menos 1 estrella.";
+          msg.style.color = "red";
+          return;
+      }
+
+      msg.textContent = "Enviando calificación...";
+      msg.style.color = "var(--text-soft)";
+      sendBtn.disabled = true; // evita enviar dos veces
+
+      const pedidoId = pedidoACalificar;
+
+      try {
+          await apiRequest(`/api/calificaciones/pedido/${pedidoId}`, {
+              method: 'POST',
+              body: JSON.stringify({ estrellas: valor, comentario: comentario })
+          });
+
+          // Guardamos que este pedido ya fue calificado para mostrarlo en la lista
+          saveRated(pedidoId, valor, comentario);
+
+          msg.textContent = "¡Gracias por tu calificación!";
+          msg.style.color = "green";
+
+          setTimeout(() => {
+              cerrarModalCalificacion();
+              refreshClienteDashboard(currentUser);
+          }, 1200);
+
+      } catch (err) {
+          sendBtn.disabled = false;
+          msg.textContent = `Error: ${err.message}`;
+          msg.style.color = "red";
+      }
+  };
+
+  // Eventos UI
+  restaurantSelect.addEventListener('change',e=>{if(e.target.value) loadProducts(e.target.value); else {selectedRestaurant=null;menuProducts=[];productGrid.innerHTML='<div class="api-empty">Seleccioná restaurante.</div>';menuRestaurantName.textContent='';}});
+  restaurantGrid.addEventListener('click',e=>{const btn=e.target.closest('[data-open-restaurant]');if(btn){loadProducts(btn.dataset.openRestaurant);document.getElementById('productGrid').scrollIntoView({behavior:'smooth',block:'center'});}});
+  productGrid.addEventListener('click',e=>{const btn=e.target.closest('[data-add-product]');if(btn)addToCart(btn.dataset.addProduct);});
+  cartItems.addEventListener('click',e=>{const minus=e.target.closest('[data-cart-minus]');const plus=e.target.closest('[data-cart-plus]');if(minus)updateCart(minus.dataset.cartMinus,-1);if(plus)updateCart(plus.dataset.cartPlus,1);});
+  document.getElementById('retryApi').addEventListener('click',loadRestaurants);
+  document.getElementById('loadOrdersBtn').addEventListener('click',()=>{ if(currentUser) refreshClienteDashboard(currentUser); });
+  document.getElementById('navOrderBtn').addEventListener('click',()=>document.getElementById('restaurantes').scrollIntoView({behavior:'smooth'}));
+  document.getElementById('heroRestaurantsBtn').addEventListener('click',()=>document.getElementById('restaurantes').scrollIntoView({behavior:'smooth'}));
+  document.getElementById('heroHowBtn').addEventListener('click',()=>document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'}));
+  document.getElementById('navHowBtn').addEventListener('click',(e)=>{e.preventDefault();document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'});});
+
+  // Iniciar (restaura la sesión si la pestaña seguía abierta)
+  let restoredUser = null;
+  try { restoredUser = JSON.parse(sessionStorage.getItem('pideya-user')); } catch(e) {}
+  if (restoredUser && restoredUser.id != null) { showAccount(restoredUser); }
+  else { loadRestaurants(); }
+</script>
+</body>
+</html>
